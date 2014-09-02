@@ -170,6 +170,8 @@ class StreamingContext private[streaming] (
     val Initialized, Started, Stopped = Value
   }
 
+  private val isHA = conf.getBoolean("spark.streaming.ha", false)
+
   import StreamingContextState._
   private[streaming] var state = Initialized
 

@@ -39,6 +39,7 @@ class ClientArguments(val args: Array[String], val sparkConf: SparkConf) {
   var amMemory: Int = 512 // MB
   var appName: String = "Spark"
   var priority = 0
+  var ha = false
 
   parseArgs(args.toList)
 
@@ -128,6 +129,10 @@ class ClientArguments(val args: Array[String], val sparkConf: SparkConf) {
           archives = value
           args = tail
 
+        case ("--ha") :: tail =>
+          ha = true
+          args = tail
+
         case Nil =>
 
         case _ =>
@@ -158,5 +163,7 @@ class ClientArguments(val args: Array[String], val sparkConf: SparkConf) {
       "  --addJars jars             Comma separated list of local jars that want SparkContext.addJar to work with.\n" +
       "  --files files              Comma separated list of files to be distributed with the job.\n" +
       "  --archives archives        Comma separated list of archives to be distributed with the job."
+      "  --ha                       If this is set, containers are not released if the driver " +
+                                    "goes down and the driver is restarted immediately on failure."
   }
 }
