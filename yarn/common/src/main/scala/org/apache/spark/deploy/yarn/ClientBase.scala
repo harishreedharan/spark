@@ -426,10 +426,10 @@ trait ClientBase extends Logging {
     val printableCommands = commands.map(s => if (s == null) "null" else s).toList
     amContainer.setCommands(printableCommands)
 
+    // Adds secret key to credentials cache, so it is accessible from everywhere.
+    val securityManager = new SecurityManager(sparkConf)
     setupSecurityToken(amContainer)
 
-    // send the acl settings into YARN to control who has access via YARN interfaces
-    val securityManager = new SecurityManager(sparkConf)
     val acls = Map[ApplicationAccessType, String] (
       ApplicationAccessType.VIEW_APP -> securityManager.getViewAcls,
       ApplicationAccessType.MODIFY_APP -> securityManager.getModifyAcls)

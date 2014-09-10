@@ -19,8 +19,6 @@ package org.apache.spark.deploy.yarn
 
 import java.nio.ByteBuffer
 
-import scala.util.Try
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.DataOutputBuffer
 import org.apache.hadoop.yarn.api.protocolrecords._
@@ -30,7 +28,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.ipc.YarnRPC
 import org.apache.hadoop.yarn.util.Records
 
-import org.apache.spark.deploy.ClientArguments
 import org.apache.spark.{Logging, SparkConf}
 import org.apache.spark.deploy.SparkHadoopUtil
 
@@ -78,6 +75,25 @@ class Client(clientArgs: ClientArguments, hadoopConf: Configuration, spConf: Spa
     val appStagingDir = getAppStagingDir(appId)
     val localResources = prepareLocalResources(appStagingDir)
     val launchEnv = setupLaunchEnv(localResources, appStagingDir)
+
+    // Set the HA vars into the SparkConf before creating the launch context.
+    if (args.ha) {
+      try {
+        appContext.getClass.getMethod("setMaxAppAttempts", Integer.TYPE)
+          .invoke(appContext, maxAppAttempts: java.lang.Integer)
+        appContext.getClass.getMethod("setKeepContainersAcrossApplicationAttempts",
+          java.lang.Boolean.TYPE).invoke(appContext, java.lang.Boolean.TRUE)
+        val haRecoveryDirectory = appStagingDir.asInstanceOf[String] + "/haRecovery"
+        sparkConf.set("spark.streaming.ha", true.toString)
+        // Force auth to be true so a restarting driver can authenticate the executors.
+        sparkConf.set("spark.authenticate", true.toString)
+        sparkConf.set("spark.streaming.ha.recovery.directory", haRecoveryDirectory)
+      } catch {
+        case e: Exception =>
+          logWarning("setMaxAttempts and setKeepContainersAcrossApplicationAttempts is not " +
+            "available in the current version of YARN - HA will be disabled!")
+      }
+    }
     val amContainer = createContainerLaunchContext(newAppResponse, localResources, launchEnv)
 
     // Set up an application submission context.
@@ -91,19 +107,6 @@ class Client(clientArgs: ClientArguments, hadoopConf: Configuration, spConf: Spa
     val memoryResource = Records.newRecord(classOf[Resource]).asInstanceOf[Resource]
     memoryResource.setMemory(args.amMemory + memoryOverhead)
     appContext.setResource(memoryResource)
-    if (args.ha) {
-      try {
-        appContext.getClass.getMethod("setMaxAppAttempts", Integer.TYPE)
-          .invoke(appContext, maxAppAttempts: java.lang.Integer)
-        appContext.getClass.getMethod("setKeepContainersAcrossApplicationAttempts",
-          java.lang.Boolean.TYPE).invoke(appContext, java.lang.Boolean.TRUE)
-        sparkConf.set("spark.streaming.ha", true.toString)
-      } catch {
-        case e: Exception =>
-          logWarning("setMaxAttempts and setKeepContainersAcrossApplicationAttempts is not " +
-            "available in the current version of YARN - HA will be disabled!")
-      }
-    }
 
     // Finally, submit and monitor the application.
     submitApp(appContext)
