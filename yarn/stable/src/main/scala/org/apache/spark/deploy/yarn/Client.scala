@@ -76,6 +76,7 @@ class Client(clientArgs: ClientArguments, hadoopConf: Configuration, spConf: Spa
     val localResources = prepareLocalResources(appStagingDir)
     val launchEnv = setupLaunchEnv(localResources, appStagingDir)
 
+    val appContext = newApp.getApplicationSubmissionContext()
     // Set the HA vars into the SparkConf before creating the launch context.
     if (args.ha) {
       try {
@@ -97,7 +98,6 @@ class Client(clientArgs: ClientArguments, hadoopConf: Configuration, spConf: Spa
     val amContainer = createContainerLaunchContext(newAppResponse, localResources, launchEnv)
 
     // Set up an application submission context.
-    val appContext = newApp.getApplicationSubmissionContext()
     appContext.setApplicationName(args.appName)
     appContext.setQueue(args.amQueue)
     appContext.setAMContainerSpec(amContainer)

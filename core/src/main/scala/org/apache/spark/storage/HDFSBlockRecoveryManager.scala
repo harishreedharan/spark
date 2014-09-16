@@ -16,19 +16,15 @@
  */
 package org.apache.spark.storage
 
-trait BlockRecoveryManager {
+import org.apache.spark.SparkConf
 
-  /**
-   * Get a list of executors this application is using. This list contains the port and host of
-   * the BlockManagers of those executors which can be used to get a list of blocks they hold.
-   * @return
-   */
-  def getExecutors(): ExecutorInfo
+private[storage] class HDFSBlockRecoveryManager(conf: SparkConf) extends BlockRecoveryManager {
 
-  /**
-   * Get the data in blocks that were still being written to. These blocks were not completed
-   * when the driver died.
-   * @return
-   */
-  def getIncompleteBlocks(): List[Any]
+  override def getExecutors(): ExecutorInfo = {
+
+  }
+
+  override def getIncompleteBlocks(): List[Any] = {
+    List.empty
+  }
 }
