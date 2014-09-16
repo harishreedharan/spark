@@ -300,8 +300,6 @@ trait ClientBase extends Logging {
     retval.toString
   }
 
-  def calculateAMMemory(newApp: GetNewApplicationResponse): Int
-
   def setupSecurityToken(amContainer: ContainerLaunchContext)
 
   def createContainerLaunchContext(
@@ -346,7 +344,7 @@ trait ClientBase extends Logging {
     }
     amContainer.setEnvironment(env)
 
-    val amMemory = calculateAMMemory(newApp)
+    val amMemory = args.amMemory
 
     val javaOpts = ListBuffer[String]()
 
@@ -430,10 +428,8 @@ trait ClientBase extends Logging {
     val securityManager = new SecurityManager(sparkConf)
     setupSecurityToken(amContainer)
 
-    val acls = Map[ApplicationAccessType, String] (
-      ApplicationAccessType.VIEW_APP -> securityManager.getViewAcls,
-      ApplicationAccessType.MODIFY_APP -> securityManager.getModifyAcls)
-    amContainer.setApplicationACLs(acls)
+    amContainer.setApplicationACLs(YarnSparkHadoopUtil.getApplicationAclsForYarn(securityManager))
+
     amContainer
   }
 }
