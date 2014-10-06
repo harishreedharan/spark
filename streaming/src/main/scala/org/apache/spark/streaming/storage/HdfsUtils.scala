@@ -17,7 +17,7 @@
 package org.apache.spark.streaming.storage
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FSDataInputStream, FSDataOutputStream, Path}
+import org.apache.hadoop.fs._
 
 private[streaming] object HdfsUtils {
 
@@ -27,7 +27,10 @@ private[streaming] object HdfsUtils {
     val dfsPath = new Path(path)
     val dfs =
       this.synchronized {
-        dfsPath.getFileSystem(conf)
+        dfsPath.getFileSystem(conf) match {
+          case lfs: LocalFileSystem => lfs.getRaw
+          case fs: FileSystem => fs
+        }
       }
     // If the file exists and we have append support, append instead of creating a new file
     val stream: FSDataOutputStream = {
