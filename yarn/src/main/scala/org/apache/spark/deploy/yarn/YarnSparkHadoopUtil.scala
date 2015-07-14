@@ -45,7 +45,8 @@ import org.apache.spark.util.Utils
  */
 class YarnSparkHadoopUtil extends SparkHadoopUtil {
 
-  private var tokenRenewer: Option[ExecutorDelegationTokenUpdater] = None
+  private var driverTokenRenewer: Option[DriverDelegationTokenRenewer] = None
+  private var executorTokenRenewer: Option[ExecutorDelegationTokenUpdater] = None
 
   override def transferCredentials(source: UserGroupInformation, dest: UserGroupInformation) {
     dest.addCredentials(source.getCredentials())
@@ -128,13 +129,22 @@ class YarnSparkHadoopUtil extends SparkHadoopUtil {
     }
   }
 
+  private[spark] override def startDriverDelegationTokenRenewer(sparkConf: SparkConf): Unit = {
+    driverTokenRenewer = Some(new DriverDelegationTokenRenewer(sparkConf, conf))
+    driverTokenRenewer.get.scheduleLoginFromKeytab()
+  }
+
+  private[spark] override def stopDriverDelegationTokenRenewer(): Unit ={
+    driverTokenRenewer.foreach(_.stop())
+  }
+
   private[spark] override def startExecutorDelegationTokenRenewer(sparkConf: SparkConf): Unit = {
-    tokenRenewer = Some(new ExecutorDelegationTokenUpdater(sparkConf, conf))
-    tokenRenewer.get.updateCredentialsIfRequired()
+    executorTokenRenewer = Some(new ExecutorDelegationTokenUpdater(sparkConf, conf))
+    executorTokenRenewer.get.updateCredentialsIfRequired()
   }
 
   private[spark] override def stopExecutorDelegationTokenRenewer(): Unit = {
-    tokenRenewer.foreach(_.stop())
+    executorTokenRenewer.foreach(_.stop())
   }
 
   private[spark] def getContainerId: ContainerId = {

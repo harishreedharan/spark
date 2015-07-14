@@ -558,6 +558,8 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
       _env.metricsSystem.registerSource(e.executorAllocationManagerSource)
     }
 
+    SparkHadoopUtil.get.startDriverDelegationTokenRenewer(_conf)
+
     // Make sure the context is stopped if the user forgets about it. This avoids leaving
     // unfinished event logs around after the JVM exits cleanly. It doesn't help if the JVM
     // is killed, though.
